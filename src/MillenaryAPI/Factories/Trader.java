@@ -19,7 +19,7 @@ import net.minecraft.server.v1_7_R3.World;
 
 public class Trader implements IMerchant {
 	
-	private String name = "Shop"; // Você pode colocar um nome padrão aqui para seus traders! :D // You may can use a default name for your traders! :D //
+	private String name = ""; // Você pode colocar um nome padrão aqui para seus traders! :D // You may can use a default name for your traders! :D //
 	private MerchantRecipeList list = new MerchantRecipeList();
 	private Player p;
 	private TraderVillager e;

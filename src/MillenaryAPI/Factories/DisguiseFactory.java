@@ -31,6 +31,7 @@ import net.minecraft.server.v1_7_R3.EntityMushroomCow;
 import net.minecraft.server.v1_7_R3.EntityOcelot;
 import net.minecraft.server.v1_7_R3.EntityPig;
 import net.minecraft.server.v1_7_R3.EntityPigZombie;
+import net.minecraft.server.v1_7_R3.EntityPlayer;
 import net.minecraft.server.v1_7_R3.EntitySheep;
 import net.minecraft.server.v1_7_R3.EntitySilverfish;
 import net.minecraft.server.v1_7_R3.EntitySkeleton;
@@ -107,8 +108,8 @@ public class DisguiseFactory {
 		}
 	}
 	
-	public void changeSkin(final Player p, final String skin){
-		disguises.put(p.getUniqueId(), skin);
+	public void changeSkin(final Player p, final String playername){
+		disguises.put(p.getUniqueId(), playername);
 		new BukkitRunnable() {
 			@Override
 			public void run() {
@@ -117,9 +118,32 @@ public class DisguiseFactory {
 					Field gameProfileField = PacketPlayOutNamedEntitySpawn.class.getDeclaredField("b");
 					gameProfileField.setAccessible(true);
 					GameProfile profile = new GameProfile(p.getUniqueId(), p.getName());
-					fixSkin(profile, skin);
+					fixSkin(profile, playername);
 					gameProfileField.set(packet, profile);
 					packet.broadcast(p.getWorld());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }.runTaskAsynchronously(this.api);
+	}
+	
+	/**
+	 * You can use it to disguise NPCs as well! :D
+	 */
+	public void changeSkin(final EntityPlayer p, final String playername){
+		disguises.put(p.getUniqueID(), playername);
+		new BukkitRunnable() {
+			@Override
+			public void run() {
+				try {
+					PacketWrapper packet = new PacketWrapper(new PacketPlayOutNamedEntitySpawn(p));
+					Field gameProfileField = PacketPlayOutNamedEntitySpawn.class.getDeclaredField("b");
+					gameProfileField.setAccessible(true);
+					GameProfile profile = new GameProfile(p.getUniqueID(), p.getName());
+					fixSkin(profile, playername);
+					gameProfileField.set(packet, profile);
+					packet.broadcast(Bukkit.getWorld(p.world.worldData.getName()));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -130,20 +154,20 @@ public class DisguiseFactory {
 	@SuppressWarnings({ "deprecation", "resource" })
 	private void fixSkin(GameProfile profile, String skinOwner) {
 		try{
-			URL url = new URL("https://sessionserver.mojang.com/session/minecraft/profile/" + Bukkit.getOfflinePlayer(skinOwner).getUniqueId().toString().replace("-", ""));
+			URL url = new URL("https://sessionserver.mojang.com/session/minecraft/profile/" + Bukkit.getOfflinePlayer(skinOwner).getUniqueId().toString().replace("-", "") + "?unsigned=false");
 			URLConnection connection = url.openConnection();
 			Scanner scanner = new Scanner(connection.getInputStream(), "UTF-8").useDelimiter("\\A");
 			String json = scanner.next();
 			JSONArray properties = (JSONArray) ((JSONObject) new JSONParser().parse(json)).get("properties");
 			for (int i = 0; i < properties.size(); i++) {
 				JSONObject property = (JSONObject) properties.get(i);
-				String name = (String) property.get("name");
-				String value = (String) property.get("value");
-				String signature = property.containsKey("signature") ? (String) property.get("signature") : null;
-				if (signature != null) {
-					profile.getProperties().put(name, new Property(name, value, signature));
+				String n = (String) property.get("name");
+				String v = (String) property.get("value");
+				String s = property.containsKey("signature") ? (String) property.get("signature") : null;
+				if (s != null) {
+					profile.getProperties().put(n, new Property(n, v, s));
 				} else {
-					profile.getProperties().put(name, new Property(value, name));
+					profile.getProperties().put(n, new Property(v, n));
 				}
 			}
 		}catch (Exception e){
@@ -181,10 +205,12 @@ public class DisguiseFactory {
 		sendPacket(new PacketPlayOutSpawnEntity(e, 70), p, p.getWorld().getPlayers());
 	}
 	
-	public void disguiseAsPlayer(Player p, String disguisename){
+	public void disguiseAsPlayer(Player p, String playername){
 		if(disguises.containsKey(p.getUniqueId())) disguises.remove(p.getUniqueId());
-		disguises.put(p.getUniqueId(), disguisename);
-		EntityHuman e = new EntityHuman(((CraftPlayer)p).getHandle().world, new GameProfile(UUID.fromString(("disguisedplayer-" + UUID.randomUUID().toString())), disguisename)){
+		disguises.put(p.getUniqueId(), playername);
+		GameProfile profile = new GameProfile(UUID.fromString("disguisedplayer-" + UUID.randomUUID().toString()), playername);
+		this.fixSkin(profile, playername);
+		EntityHuman e = new EntityHuman(((CraftPlayer)p).getHandle().world, profile){
 			@Override
 			public boolean a(int arg0, String arg1) {return false;}
 			@Override
