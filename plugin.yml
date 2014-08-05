@@ -1,0 +1,14 @@
+name: MillenaryAPI
+main: Millenary.MillenaryAPI
+version: 1.0
+commands:
+  api:
+    description: Informacoes sobre a API.
+  ban:
+    description: Gerenciamento de banimentos.
+  unban:
+    description: Gerenciamento de desbanimentos.
+  kick:
+    description: Gerenciamento de kickamentos.
+  permissions:
+    description: Manuseio de permissoes.
